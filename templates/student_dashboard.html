@@ -1,0 +1,56 @@
+<!-- templates/student_dashboard.html -->
+
+{% extends 'layout.html' %}
+
+{% block content %}
+<h2>Welcome, {{ current_user.username }}!</h2>
+<p>This is your personal dashboard. Here you can manage and track your admission application.</p>
+<hr>
+
+{% if not application %}
+    <div class="alert alert-info text-center">
+        <h4>You have not started an application yet.</h4>
+        <p>Click the button below to begin.</p>
+        <a href="{{ url_for('apply') }}" class="btn btn-success mt-2">Start Your Application</a>
+    </div>
+
+{% elif application.is_draft %}
+     <div class="alert alert-warning text-center">
+        <h4>You have a saved draft.</h4>
+        <p>You can continue editing your application before final submission.</p>
+        <a href="{{ url_for('apply') }}" class="btn btn-primary mt-2">Continue Application</a>
+    </div>
+
+{% elif not application.is_draft and application.payment_status == 'Unpaid' %}
+    <div class="card text-center">
+        <div class="card-header">
+            <h4>Application Submitted - Payment Pending</h4>
+        </div>
+        <div class="card-body">
+            <p>Your application details have been saved. The final step is to pay the application fee to complete your submission.</p>
+            <a href="{{ url_for('payment') }}" class="btn btn-success btn-lg">Pay Application Fee (₹150)</a>
+        </div>
+    </div>
+
+{% else %}
+    <h3>Your Application Status</h3>
+    <div class="card">
+        <div class="card-body">
+            <p><strong>Full Name:</strong> {{ application.full_name }}</p>
+            <p><strong>Course:</strong> {{ application.course.name }}</p>
+            <p><strong>Payment Status:</strong> <span class="badge bg-success">{{ application.payment_status }}</span></p>
+            <p><strong>Application Status:</strong>
+                {% if application.status == 'Pending' %}
+                    <span class="badge bg-warning text-dark">Under Review</span>
+                {% elif application.status == 'Approved' %}
+                    <span class="badge bg-success">Approved</span>
+                {% elif application.status == 'Rejected' %}
+                    <span class="badge bg-danger">Rejected</span>
+                {% endif %}
+            </p>
+            <a href="{{ url_for('download_pdf', app_id=application.id) }}" class="btn btn-info mt-2">Download Summary as PDF</a>
+        </div>
+    </div>
+{% endif %}
+
+{% endblock %}

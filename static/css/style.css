@@ -1,0 +1,137 @@
+/* static/css/style.css */
+
+/* --- 1. Modern Font and Color Palette --- */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --primary-color: #6a11cb;
+    --secondary-color: #2575fc;
+    --background-color: #f4f7fc;
+    --card-bg-color: #ffffff;
+    --text-color: #4f4f4f;
+    --heading-color: #333333;
+    --shadow-color: rgba(106, 17, 203, 0.15);
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+}
+
+body {
+    background-color: var(--background-color);
+    font-family: 'Poppins', sans-serif;
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+/* --- 2. Upgraded Navbar with Gradient and Effects --- */
+.navbar {
+    background-image: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease-in-out;
+    padding: 0.75rem 0;
+}
+
+.navbar .nav-link {
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.navbar .nav-link:hover {
+    transform: translateY(-3px);
+    color: #fff !important;
+}
+
+
+/* --- 3. Animated & Interactive Cards --- */
+.card {
+    margin-top: 20px;
+    border: none;
+    border-radius: 15px; /* Softer corners */
+    box-shadow: 0 10px 30px var(--shadow-color);
+    overflow: hidden; /* Important for some effects */
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-10px); /* Lift effect on hover */
+    box-shadow: 0 20px 40px var(--shadow-color);
+}
+
+.card-header {
+    background-image: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    padding: 1rem 1.5rem;
+    border-bottom: 0;
+}
+
+/* --- 4. Enhanced Buttons with Hover Effects --- */
+.btn {
+    border-radius: 30px; /* Pill-shaped buttons */
+    padding: 10px 25px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border: none;
+}
+
+.btn-primary {
+    background-image: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+}
+
+.btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 7px 20px rgba(0, 0, 0, 0.2);
+}
+
+
+/* --- 5. General Page Animations --- */
+.content-container {
+    animation: fadeIn 0.8s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* --- 6. Improved Form Styling --- */
+.form-control, .form-select {
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--shadow-color);
+}
+
+/* --- 7. Responsive Table Styling --- */
+.table {
+    animation: fadeIn 0.5s ease-out;
+}
+.table-dark {
+     background-image: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+}
+
+/* --- 8. Specific Page Layout Improvements --- */
+
+/* Admin Reporting Cards */
+.admin-stats-card {
+    color: white;
+    border-radius: 10px;
+    padding: 20px;
+    transition: transform 0.3s ease;
+}
+.admin-stats-card:hover {
+    transform: scale(1.05);
+}
+.admin-stats-card h1 {
+    font-size: 3rem;
+    font-weight: 700;
+}

@@ -1,0 +1,89 @@
+<!-- templates/admin_application_view.html (New File) -->
+
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center">
+    <h2>Application Details - {{ application.full_name }}</h2>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+</div>
+<hr>
+
+<div class="card">
+    <div class="card-header">
+        <h4>
+            Applicant Information
+            {% if application.status == 'Pending' %}
+                <span class="badge bg-warning text-dark float-end">Pending</span>
+            {% elif application.status == 'Approved' %}
+                <span class="badge bg-success float-end">Approved</span>
+            {% elif application.status == 'Rejected' %}
+                <span class="badge bg-danger float-end">Rejected</span>
+            {% endif %}
+        </h4>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <!-- Left Column for Details -->
+            <div class="col-md-8">
+                <p><strong>Applicant ID:</strong> {{ application.id }}</p>
+                <p><strong>Full Name:</strong> {{ application.full_name }}</p>
+                <p><strong>Date of Birth:</strong> {{ application.date_of_birth.strftime('%d-%m-%Y') }}</p>
+                <p><strong>Address:</strong> {{ application.address }}</p>
+                <p><strong>Applied Course:</strong> {{ application.course.name }}</p>
+            </div>
+            
+            <!-- Right Column for Photo -->
+            <div class="col-md-4 text-center">
+                <strong>Applicant Photo</strong><br>
+                {% if application.photo_path %}
+                    <img src="{{ url_for('static', filename='uploads/' + application.photo_path) }}" class="img-fluid img-thumbnail mt-2" style="max-width: 180px;" alt="Applicant Photo">
+                {% else %}
+                    <p class="text-muted">No photo uploaded.</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <hr>
+        
+        <h4>Uploaded Documents</h4>
+        <div class="row mt-3">
+            <div class="col-md-4 text-center mb-3">
+                <strong>Marksheet</strong><br>
+                {% if application.marksheet_path %}
+                    <a href="{{ url_for('static', filename='uploads/' + application.marksheet_path) }}" target="_blank" class="btn btn-outline-primary mt-2">View Marksheet</a>
+                {% else %}
+                    <p class="text-muted">Not Uploaded</p>
+                {% endif %}
+            </div>
+            <div class="col-md-4 text-center mb-3">
+                <strong>Signature</strong><br>
+                {% if application.signature_path %}
+                     <a href="{{ url_for('static', filename='uploads/' + application.signature_path) }}" target="_blank">
+                        <img src="{{ url_for('static', filename='uploads/' + application.signature_path) }}" class="img-fluid img-thumbnail mt-2" style="max-height: 80px; background-color: #f0f0f0;" alt="Signature">
+                     </a>
+                {% else %}
+                    <p class="text-muted">Not Uploaded</p>
+                {% endif %}
+            </div>
+            <div class="col-md-4 text-center mb-3">
+                <strong>Community Certificate</strong><br>
+                {% if application.community_cert_path %}
+                    <a href="{{ url_for('static', filename='uploads/' + application.community_cert_path) }}" target="_blank" class="btn btn-outline-primary mt-2">View Certificate</a>
+                {% else %}
+                    <p class="text-muted">Not Uploaded</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if application.status == 'Pending' %}
+    <div class="card-footer text-center">
+        <h5>Actions</h5>
+        <p>Do you want to approve or reject this application?</p>
+        <a href="{{ url_for('update_application_status', app_id=application.id, action='approve') }}" class="btn btn-success btn-lg mx-2">Approve Application</a>
+        <a href="{{ url_for('update_application_status', app_id=application.id, action='reject') }}" class="btn btn-danger btn-lg mx-2">Reject Application</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

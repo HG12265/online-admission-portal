@@ -1,0 +1,105 @@
+<!-- online_admission/templates/apply.html -->
+
+{% extends 'layout.html' %}
+
+{% block content %}
+<h2>Admission Application Form</h2>
+<hr>
+<div class="card">
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('apply') }}" enctype="multipart/form-data">
+            
+            <h5>Personal Details</h5>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="full_name" class="form-label">Full Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="full_name" name="full_name" value="{{ draft.full_name if draft else '' }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="dob" class="form-label">Date of Birth <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" id="dob" name="dob" value="{{ draft.date_of_birth.strftime('%Y-%m-%d') if draft and draft.date_of_birth else '' }}" required>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="gender" class="form-label">Gender</label>
+                    <select class="form-select" id="gender" name="gender">
+                        <option selected disabled value="">Choose...</option>
+                        <option {{ 'selected' if draft and draft.gender == 'Male' }}>Male</option>
+                        <option {{ 'selected' if draft and draft.gender == 'Female' }}>Female</option>
+                        <option {{ 'selected' if draft and draft.gender == 'Other' }}>Other</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="phone_number" class="form-label">Phone Number</label>
+                    <input type="tel" class="form-control" id="phone_number" name="phone_number" value="{{ draft.phone_number if draft else '' }}">
+                </div>
+            </div>
+             <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="father_name" class="form-label">Father's Name</label>
+                    <input type="text" class="form-control" id="father_name" name="father_name" value="{{ draft.father_name if draft else '' }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="mother_name" class="form-label">Mother's Name</label>
+                    <input type="text" class="form-control" id="mother_name" name="mother_name" value="{{ draft.mother_name if draft else '' }}">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="address" class="form-label">Address <span class="text-danger">*</span></label>
+                <textarea class="form-control" id="address" name="address" rows="3" required>{{ draft.address if draft else '' }}</textarea>
+            </div>
+            
+            <hr>
+            <h5>Academic Details</h5>
+            <div class="mb-3">
+                <label for="previous_school" class="form-label">Previous School/College Name</label>
+                <input type="text" class="form-control" id="previous_school" name="previous_school" value="{{ draft.previous_school if draft else '' }}">
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="marks_obtained" class="form-label">Marks Obtained</label>
+                    <input type="number" step="0.01" class="form-control" id="marks_obtained" name="marks_obtained" value="{{ draft.marks_obtained if draft else '' }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="total_marks" class="form-label">Total Marks</label>
+                    <input type="number" step="0.01" class="form-control" id="total_marks" name="total_marks" value="{{ draft.total_marks if draft else '' }}">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="course" class="form-label">Select Course <span class="text-danger">*</span></label>
+                <select class="form-select" id="course" name="course" required>
+                    <option selected disabled value="">Choose...</option>
+                    {% for course in courses %}
+                        <option value="{{ course.id }}" {{ 'selected' if draft and draft.course_id == course.id }}>{{ course.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <hr>
+            <h5>Upload Documents</h5>
+            <p class="text-muted"><small>If you have already uploaded a document in a previous draft, you only need to re-upload if you wish to change it.</small></p>
+            <div class="mb-3">
+                <label for="marksheet" class="form-label">Marksheet (PDF/JPG/PNG) <span class="text-danger">*</span></label>
+                <input class="form-control" type="file" id="marksheet" name="marksheet" accept=".pdf,.jpg,.jpeg,.png" {{ 'required' if not draft or not draft.marksheet_path }}>
+            </div>
+            <div class="mb-3">
+                <label for="photo" class="form-label">Your Photo (JPG/PNG) <span class="text-danger">*</span></label>
+                <input class="form-control" type="file" id="photo" name="photo" accept=".jpg,.jpeg,.png" {{ 'required' if not draft or not draft.photo_path }}>
+            </div>
+             <div class="mb-3">
+                <label for="signature" class="form-label">Your Signature (JPG/PNG) <span class="text-danger">*</span></label>
+                <input class="form-control" type="file" id="signature" name="signature" accept=".jpg,.jpeg,.png" {{ 'required' if not draft or not draft.signature_path }}>
+            </div>
+            <div class="mb-3">
+                <label for="community_cert" class="form-label">Community Certificate (PDF/JPG/PNG) (Optional)</label>
+                <input class="form-control" type="file" id="community_cert" name="community_cert" accept=".pdf,.jpg,.jpeg,.png">
+            </div>
+
+            <div class="d-flex justify-content-between">
+                 <button type="submit" formaction="{{ url_for('save_draft') }}" class="btn btn-secondary">Save as Draft</button>
+                 <button type="submit" class="btn btn-primary">Preview Application</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

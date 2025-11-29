@@ -1,0 +1,50 @@
+<!-- templates/index.html -->
+
+{% extends 'layout.html' %}
+
+{% block content %}
+<style>
+    .hero-section {
+        padding: 100px 0;
+        background-image: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+        color: white;
+        text-align: center;
+        border-radius: 20px;
+        margin-top: 20px;
+    }
+    .hero-section h1 {
+        font-weight: 700;
+        font-size: 3.5rem;
+        animation: slideInDown 1s ease-out forwards;
+    }
+    .hero-section p {
+        font-size: 1.25rem;
+        margin-bottom: 30px;
+        animation: slideInUp 1s ease-out forwards;
+    }
+    .hero-section .btn {
+        font-size: 1.2rem;
+        padding: 15px 40px;
+        background-color: white;
+        color: var(--primary-color);
+        animation: popIn 1s ease-out 0.5s forwards;
+        opacity: 0;
+    }
+    .hero-section .btn:hover {
+         background-color: #f0f0f0;
+         color: var(--secondary-color);
+    }
+
+    @keyframes slideInDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes slideInUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+</style>
+
+<div class="hero-section">
+    <div class="container-fluid py-5">
+        <h1 class="display-5 fw-bold">Your Future Starts Here</h1>
+        <p class="fs-4">Simplifying the admission process with a seamless online experience.</p>
+        <a href="{{ url_for('register') }}" class="btn btn-lg">Apply Now</a>
+    </div>
+</div>
+{% endblock %}

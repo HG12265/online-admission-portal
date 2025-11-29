@@ -1,0 +1,87 @@
+<!-- templates/admin_dashboard.html -->
+
+{% extends 'layout.html' %}
+
+{% block content %}
+<h2>Admin Dashboard - All Applications</h2>
+<p>Manage and review student applications.</p>
+<hr>
+
+<!-- Filter Form -->
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Filter Applications</h5>
+        <form method="GET" action="{{ url_for('admin_dashboard') }}">
+            <div class="row">
+                <div class="col-md-3">
+                    <input type="text" name="app_id" class="form-control" placeholder="Search by Application ID..." value="{{ search_app_id or '' }}">
+                </div>
+                <div class="col-md-3">
+                    <select name="course" class="form-select">
+                        <option value="">Filter by Course...</option>
+                        {% for course in courses %}
+                            <option value="{{ course.id }}" {{ 'selected' if filter_course and filter_course|int == course.id }}>{{ course.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="status" class="form-select">
+                        <option value="">Filter by Status...</option>
+                        <option value="Pending" {{ 'selected' if filter_status == 'Pending' }}>Pending</option>
+                        <option value="Approved" {{ 'selected' if filter_status == 'Approved' }}>Approved</option>
+                        <option value="Rejected" {{ 'selected' if filter_status == 'Rejected' }}>Rejected</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Clear</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<table class="table table-striped table-bordered">
+    <thead class="table-dark">
+        <tr>
+            <th>App ID</th>
+            <th>Applicant Name</th>
+            <th>Course</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for app in applications %}
+        <tr>
+            <td>{{ app.app_id }}</td>
+            <td>{{ app.full_name }}</td>
+            <td>{{ app.course.name }}</td>
+            <td>
+                 {% if app.status == 'Pending' %}
+                    <span class="badge bg-warning text-dark">Pending</span>
+                {% elif app.status == 'Approved' %}
+                    <span class="badge bg-success">Approved</span>
+                {% elif app.status == 'Rejected' %}
+                    <span class="badge bg-danger">Rejected</span>
+                {% endif %}
+            </td>
+            <td>
+                <a href="{{ url_for('view_application_details', app_id=app.id) }}" class="btn btn-sm btn-info">View Details</a>
+                {% if app.status == 'Pending' %}
+                    <a href="{{ url_for('update_application_status', app_id=app.id, action='approve') }}" class="btn btn-sm btn-success">Approve</a>
+                    <a href="{{ url_for('update_application_status', app_id=app.id, action='reject') }}" class="btn btn-sm btn-danger">Reject</a>
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="5" class="text-center">No applications found.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

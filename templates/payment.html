@@ -1,0 +1,45 @@
+<!-- online_admission/templates/payment.html -->
+
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3>Application Fee Payment</h3>
+            </div>
+            <div class="card-body">
+                <p class="text-center">You are about to pay the application fee of <strong>₹150.00</strong>.</p>
+                <p>This is a simulated payment page. No real transaction will occur.</p>
+                
+                <form method="POST" action="{{ url_for('payment') }}">
+                    <!-- Dummy form fields -->
+                    <div class="mb-3">
+                        <label for="card_name" class="form-label">Name on Card</label>
+                        <input type="text" class="form-control" id="card_name" value="Gowtham G" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="card_number" class="form-label">Card Number</label>
+                        <input type="text" class="form-control" id="card_number" value="**** **** **** 4242" readonly>
+                    </div>
+                     <div class="row">
+                        <div class="col-md-6 mb-3">
+                           <label for="expiry" class="form-label">Expiry</label>
+                           <input type="text" class="form-control" id="expiry" value="12 / 28" readonly>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="cvv" class="form-label">CVV</label>
+                           <input type="text" class="form-control" id="cvv" value="***" readonly>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">Pay ₹150 Now</button>
+                </form>
+            </div>
+            <div class="card-footer text-center">
+                 <a href="{{ url_for('student_dashboard') }}">Cancel and return to dashboard</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,50 @@
+<!-- templates/preview_application.html -->
+
+{% extends 'layout.html' %}
+
+{% block content %}
+<h2>Preview Your Application</h2>
+<p>Please review your details carefully before submitting. You cannot edit after submission.</p>
+<hr>
+
+<div class="card">
+    <div class="card-header">
+        <h4>Application Details</h4>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-8">
+                <p><strong>Full Name:</strong> {{ app_data.full_name }}</p>
+                <p><strong>Date of Birth:</strong> {{ app_data.dob }}</p>
+                <p><strong>Address:</strong> {{ app_data.address }}</p>
+                <p><strong>Selected Course:</strong> {{ course.name }}</p>
+            </div>
+            <div class="col-md-4 text-center">
+                {% if app_data.photo_path %}
+                    <p><strong>Your Photo:</strong></p>
+                    <img src="{{ url_for('static', filename='uploads/' + app_data.photo_path) }}" class="img-thumbnail" width="150" alt="Applicant Photo">
+                {% endif %}
+            </div>
+        </div>
+        <hr>
+        <h5>Uploaded Documents</h5>
+        <ul>
+            {% if app_data.marksheet_path %}
+                <li>Marksheet: <a href="{{ url_for('static', filename='uploads/' + app_data.marksheet_path) }}" target="_blank">View Document</a></li>
+            {% endif %}
+            {% if app_data.signature_path %}
+                 <li>Signature: <a href="{{ url_for('static', filename='uploads/' + app_data.signature_path) }}" target="_blank">View Signature</a></li>
+            {% endif %}
+            {% if app_data.community_cert_path %}
+                 <li>Community Certificate: <a href="{{ url_for('static', filename='uploads/' + app_data.community_cert_path) }}" target="_blank">View Document</a></li>
+            {% endif %}
+        </ul>
+    </div>
+     <div class="card-footer d-flex justify-content-between">
+        <a href="{{ url_for('apply') }}" class="btn btn-secondary">Go Back and Edit</a>
+        <form method="POST" action="{{ url_for('submit_application') }}">
+             <button type="submit" class="btn btn-success">Confirm and Submit Application</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

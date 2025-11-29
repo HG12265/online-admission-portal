@@ -1,0 +1,33 @@
+<!-- templates/admin_messages.html -->
+
+{% extends 'layout.html' %}
+
+{% block content %}
+<h2>Inbox - Contact Form Messages</h2>
+<p>Here are the messages submitted through the contact form.</p>
+<hr>
+
+{% if not messages %}
+<div class="alert alert-info text-center">
+    There are no messages in the inbox.
+</div>
+{% else %}
+    {% for message in messages %}
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between">
+            <div>
+                <strong>From:</strong> {{ message.name }} ({{ message.email }})<br>
+                <strong>Subject:</strong> {{ message.subject or 'No Subject' }}
+            </div>
+            <div class="text-muted">
+                <small>Received on: {{ message.timestamp.strftime('%d %b, %Y at %I:%M %p') }}</small>
+            </div>
+        </div>
+        <div class="card-body">
+            <p class="card-text">{{ message.message }}</p>
+        </div>
+    </div>
+    {% endfor %}
+{% endif %}
+
+{% endblock %}
