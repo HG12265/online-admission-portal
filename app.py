@@ -5,18 +5,24 @@ import os
 import io
 import csv
 from datetime import datetime
-from flask import Flask, render_template, url_for, redirect, request, flash, session, Response
-from flask_sqlalchemy import SQLAlchemy
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+from flask import Flask, render_template, url_for, redirect, request, flash, session, Response, abort
+import mongoengine as me
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
 from flask_bcrypt import Bcrypt
 from fpdf import FPDF
-from sqlalchemy import desc
 
 # --- App Configuration ---
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///college_admission.db'
-app.config['SECRET_KEY'] = 'a_very_secret_key_that_should_be_changed'
-db = SQLAlchemy(app)
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'a_very_secret_key_that_should_be_changed')
+
+# MongoDB connection - use environment variable for production
+mongodb_uri = os.environ.get('MONGODB_URI', 'mongodb://localhost:27017/college_admission')
+me.connect(host=mongodb_uri)
+
 bcrypt = Bcrypt(app)
 
 # --- Flask-Login Configuration ---
@@ -24,59 +30,66 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
+from bson import ObjectId
+
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    if not ObjectId.is_valid(user_id):
+        return None
+    return User.objects(pk=user_id).first()
+
+def get_object_or_404(model, pk):
+    if not ObjectId.is_valid(pk):
+        abort(404)
+    obj = model.objects(pk=pk).first()
+    if not obj:
+        abort(404)
+    return obj
 
 # --- Database Models ---
-class User(db.Model, UserMixin):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(150), nullable=False, unique=True)
-    email = db.Column(db.String(150), nullable=False, unique=True)
-    password = db.Column(db.String(80), nullable=False)
-    is_admin = db.Column(db.Boolean, default=False)
-    application = db.relationship('Application', backref='applicant', uselist=False)
+class User(me.Document, UserMixin):
+    username = me.StringField(max_length=150, required=True) # Removed unique=True
+    email = me.StringField(max_length=150, required=True, unique=True)
+    password = me.StringField(required=True)
+    is_admin = me.BooleanField(default=False)
+    
+    @property
+    def application(self):
+        return Application.objects(applicant=self).first()
 
-class Course(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    description = db.Column(db.Text, nullable=True)
+class Course(me.Document):
+    name = me.StringField(max_length=100, required=True)
+    description = me.StringField()
 
-class Application(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    app_id = db.Column(db.String(10), unique=True, nullable=True)
-    full_name = db.Column(db.String(100), nullable=False)
-    date_of_birth = db.Column(db.Date, nullable=False)
-    gender = db.Column(db.String(20), nullable=True)
-    phone_number = db.Column(db.String(20), nullable=True)
-    address = db.Column(db.Text, nullable=False)
-    father_name = db.Column(db.String(100), nullable=True)
-    mother_name = db.Column(db.String(100), nullable=True)
-    previous_school = db.Column(db.String(150), nullable=True)
-    marks_obtained = db.Column(db.Float, nullable=True)
-    total_marks = db.Column(db.Float, nullable=True)
-    marksheet_path = db.Column(db.String(200), nullable=True) # Changed to nullable for drafts
-    photo_path = db.Column(db.String(200), nullable=True) # Changed to nullable for drafts
-    signature_path = db.Column(db.String(200), nullable=True) # Changed to nullable for drafts
-    community_cert_path = db.Column(db.String(200), nullable=True)
-    status = db.Column(db.String(20), default='Pending')
+class Application(me.Document):
+    app_id = me.StringField(max_length=10, unique=True)
+    full_name = me.StringField(max_length=100, required=True)
+    date_of_birth = me.DateTimeField(required=True)
+    gender = me.StringField(max_length=20)
+    phone_number = me.StringField(max_length=20)
+    address = me.StringField(required=True)
+    father_name = me.StringField(max_length=100)
+    mother_name = me.StringField(max_length=100)
+    previous_school = me.StringField(max_length=150)
+    marks_obtained = me.FloatField()
+    total_marks = me.FloatField()
+    marksheet_path = me.StringField()
+    photo_path = me.StringField()
+    signature_path = me.StringField()
+    community_cert_path = me.StringField()
+    status = me.StringField(default='Pending')
+    payment_status = me.StringField(default='Unpaid')
+    is_draft = me.BooleanField(default=True)
 
-    # --- MODIFIED/NEW COLUMNS FOR DRAFT & PAYMENT FEATURES ---
-    payment_status = db.Column(db.String(20), default='Unpaid')
-    is_draft = db.Column(db.Boolean, default=True)
-    # --- END OF CHANGES ---
+    applicant = me.ReferenceField(User, required=True, unique=True)
+    course = me.ReferenceField(Course)
 
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, nullable=False)
-    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=True) # Changed to nullable for drafts
-    course = db.relationship('Course')
-
-class ContactMessage(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(150), nullable=False)
-    subject = db.Column(db.String(200), nullable=True)
-    message = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+class ContactMessage(me.Document):
+    name = me.StringField(max_length=100, required=True)
+    email = me.StringField(max_length=150, required=True)
+    subject = me.StringField(max_length=200)
+    message = me.StringField(required=True)
+    timestamp = me.DateTimeField(default=datetime.utcnow)
 
 class PDF(FPDF):
     def header(self):
@@ -96,29 +109,32 @@ class PDF(FPDF):
 
 # --- Helper function to create initial data ---
 def create_initial_data():
-    with app.app_context():
-        db.create_all()
-        if not User.query.filter_by(is_admin=True).first():
-            hashed_password = bcrypt.generate_password_hash('admin123').decode('utf-8')
-            admin = User(username='admin', email='admin@college.com', password=hashed_password, is_admin=True)
-            db.session.add(admin)
-            print("Admin user created with username 'admin' and password 'admin123'")
-        if Course.query.count() == 0:
-            courses = [
-                Course(name='Computer Science', description='Study of computation and information.'),
-                Course(name='Mechanical Engineering', description='Design, analysis, and manufacturing of mechanical systems.'),
-                Course(name='Business Administration', description='Management of business operations.')
-            ]
-            db.session.bulk_save_objects(courses)
-            print("Sample courses created.")
-        db.session.commit()
+    # Drop legacy unique index on username if it exists
+    try:
+        User._get_collection().drop_index("username_1")
+    except:
+        pass
+
+    if not User.objects(is_admin=True).first():
+        hashed_password = bcrypt.generate_password_hash('admin123').decode('utf-8')
+        admin = User(username='admin', email='admin@college.com', password=hashed_password, is_admin=True)
+        admin.save()
+        print("Admin user created with username 'admin' and password 'admin123'")
+    if Course.objects().count() == 0:
+        courses = [
+            Course(name='Computer Science', description='Study of computation and information.'),
+            Course(name='Mechanical Engineering', description='Design, analysis, and manufacturing of mechanical systems.'),
+            Course(name='Business Administration', description='Management of business operations.')
+        ]
+        Course.objects.insert(courses)
+        print("Sample courses created.")
 
 def generate_app_id():
-    last_app = Application.query.order_by(Application.id.desc()).first()
-    last_id = last_app.id if last_app else 0
-    new_id = last_id + 1
-    # Format to a 4-digit number with leading zeros
-    return f"APP{new_id:04d}"
+    count = Application.objects().count()
+    return f"APP{count + 1:04d}"
+
+# Create initial data (admin, courses) on startup
+create_initial_data()
 # ==================================================
 #                  PUBLIC ROUTES
 # ==================================================
@@ -135,8 +151,7 @@ def contact():
             subject=request.form.get('subject'),
             message=request.form.get('message')
         )
-        db.session.add(new_message)
-        db.session.commit()
+        new_message.save()
         flash('Thank you for your message! We will get back to you shortly.', 'success')
         return redirect(url_for('index'))
     return render_template('contact.html')
@@ -151,13 +166,12 @@ def register():
     if request.method == 'POST':
         username = request.form.get('username')
         email = request.form.get('email')
-        if User.query.filter((User.username == username) | (User.email == email)).first():
-            flash('Username or email already exists.', 'danger')
+        if User.objects(email=email).first():
+            flash('Email already exists. Please use a different email or log in.', 'danger')
             return redirect(url_for('register'))
         hashed_password = bcrypt.generate_password_hash(request.form.get('password')).decode('utf-8')
         new_user = User(username=username, email=email, password=hashed_password)
-        db.session.add(new_user)
-        db.session.commit()
+        new_user.save()
         flash('Account created successfully! You can now log in.', 'success')
         return redirect(url_for('login'))
     return render_template('register.html')
@@ -167,7 +181,7 @@ def login():
     if current_user.is_authenticated:
         return redirect(url_for('admin_dashboard') if current_user.is_admin else url_for('student_dashboard'))
     if request.method == 'POST':
-        user = User.query.filter_by(username=request.form.get('username')).first()
+        user = User.objects(email=request.form.get('email')).first()
         if user and bcrypt.check_password_hash(user.password, request.form.get('password')):
             login_user(user)
             flash('Logged in successfully!', 'success')
@@ -189,11 +203,11 @@ def profile():
     if request.method == 'POST':
         current_user.username = request.form.get('username')
         current_user.email = request.form.get('email')
-        existing_user = User.query.filter(User.id != current_user.id, (User.username == current_user.username) | (User.email == current_user.email)).first()
+        existing_user = User.objects(me.Q(id__ne=current_user.id) & me.Q(email=current_user.email)).first()
         if existing_user:
-            flash('Username or email is already taken by another user.', 'danger')
+            flash('Email is already taken by another user.', 'danger')
             return redirect(url_for('profile'))
-        db.session.commit()
+        current_user.save()
         flash('Your profile has been updated!', 'success')
         return redirect(url_for('profile'))
     return render_template('profile.html')
@@ -206,7 +220,7 @@ def profile():
 def student_dashboard():
     if current_user.is_admin:
         return redirect(url_for('admin_dashboard'))
-    application = Application.query.filter_by(user_id=current_user.id).first()
+    application = Application.objects(applicant=current_user).first()
     return render_template('student_dashboard.html', application=application)
 
 @app.route('/apply', methods=['GET', 'POST'])
@@ -217,7 +231,7 @@ def apply():
         return redirect(url_for('admin_dashboard'))
 
     # Check for existing FINAL application
-    existing_final_app = Application.query.filter_by(user_id=current_user.id, is_draft=False).first()
+    existing_final_app = Application.objects(applicant=current_user, is_draft=False).first()
     if existing_final_app:
         flash('You have already submitted your final application.', 'warning')
         return redirect(url_for('student_dashboard'))
@@ -249,7 +263,7 @@ def apply():
         }
         
         # Keep existing file paths from draft if a new file isn't uploaded
-        draft = Application.query.filter_by(user_id=current_user.id).first()
+        draft = Application.objects(applicant=current_user).first()
 
         for key, file in files_to_upload.items():
             path_key = f'{key}_path'
@@ -264,18 +278,17 @@ def apply():
         return redirect(url_for('preview_application'))
 
     # GET Request: Load draft if it exists
-    draft = Application.query.filter_by(user_id=current_user.id, is_draft=True).first()
-    courses = Course.query.all()
+    draft = Application.objects(applicant=current_user, is_draft=True).first()
+    courses = Course.objects()
     return render_template('apply.html', courses=courses, draft=draft)
 
 @app.route('/save-draft', methods=['POST'])
 @login_required
 def save_draft():
     # Find if a draft already exists
-    draft = Application.query.filter_by(user_id=current_user.id).first()
+    draft = Application.objects(applicant=current_user).first()
     if not draft:
-        draft = Application(user_id=current_user.id, is_draft=True)
-        db.session.add(draft)
+        draft = Application(applicant=current_user, is_draft=True)
     
     # Update fields from form
     draft.full_name = request.form.get('full_name')
@@ -303,7 +316,7 @@ def save_draft():
             file.save(file_path)
             setattr(draft, f'{key}_path', os.path.join(str(current_user.id), filename))
 
-    db.session.commit()
+    draft.save()
     flash('Your application has been saved as a draft.', 'info')
     return redirect(url_for('student_dashboard'))
 
@@ -314,7 +327,7 @@ def preview_application():
         flash('No application data to preview. Please fill out the form.', 'warning')
         return redirect(url_for('apply'))
     app_data = session['application_data']
-    course = Course.query.get(app_data.get('course_id'))
+    course = Course.objects(pk=app_data.get('course_id')).first()
     return render_template('preview_application.html', app_data=app_data, course=course)
 
 @app.route('/submit-application', methods=['POST'])
@@ -327,10 +340,9 @@ def submit_application():
     app_data = session.pop('application_data', None)
     
     # Check if a draft exists to update it, otherwise create a new application
-    application = Application.query.filter_by(user_id=current_user.id).first()
+    application = Application.objects(applicant=current_user).first()
     if not application:
-        application = Application(user_id=current_user.id)
-        db.session.add(application)
+        application = Application(applicant=current_user)
         
     # Update all fields from session data
     application.full_name=app_data['full_name']
@@ -355,7 +367,7 @@ def submit_application():
     if not application.app_id:
         application.app_id = generate_app_id()
             
-    db.session.commit()
+    application.save()
     
     flash('Your application has been submitted successfully! Please proceed to payment.', 'success')
     return redirect(url_for('student_dashboard'))
@@ -363,7 +375,7 @@ def submit_application():
 @app.route('/payment', methods=['GET', 'POST'])
 @login_required
 def payment():
-    application = Application.query.filter_by(user_id=current_user.id, is_draft=False).first()
+    application = Application.objects(applicant=current_user, is_draft=False).first()
     
     if not application or application.payment_status != 'Unpaid':
         flash('No pending payment found for your application.', 'warning')
@@ -372,17 +384,17 @@ def payment():
     if request.method == 'POST':
         # This simulates a successful payment
         application.payment_status = 'Paid'
-        db.session.commit()
+        application.save()
         flash('Payment successful! Your application is now complete and under review.', 'success')
         return redirect(url_for('student_dashboard'))
         
     return render_template('payment.html')
 
-@app.route('/download-pdf/<int:app_id>')
+@app.route('/download-pdf/<app_id>')
 @login_required
 def download_pdf(app_id):
-    application = Application.query.get_or_404(app_id)
-    if application.user_id != current_user.id and not current_user.is_admin:
+    application = get_object_or_404(Application, app_id)
+    if application.applicant.id != current_user.id and not current_user.is_admin:
         flash('You are not authorized to view this document.', 'danger')
         return redirect(url_for('student_dashboard'))
 
@@ -455,21 +467,21 @@ def admin_dashboard():
     if not current_user.is_admin:
         return redirect(url_for('student_dashboard'))
 
-    query = Application.query.filter_by(is_draft=False, payment_status='Paid')
+    query = Application.objects(is_draft=False, payment_status='Paid')
 
     search_app_id = request.args.get('app_id')
     filter_course = request.args.get('course')
     filter_status = request.args.get('status')
 
     if search_app_id:
-        query = query.filter(Application.app_id.ilike(f'%{search_app_id}%'))
+        query = query.filter(app_id__icontains=search_app_id)
     if filter_course:
-        query = query.filter(Application.course_id == filter_course)
+        query = query.filter(course=filter_course)
     if filter_status:
-        query = query.filter(Application.status == filter_status)
+        query = query.filter(status=filter_status)
 
     applications = query.all()
-    courses = Course.query.all() 
+    courses = Course.objects()
 
     return render_template('admin_dashboard.html', 
                            applications=applications, 
@@ -478,25 +490,25 @@ def admin_dashboard():
                            filter_course=filter_course,
                            filter_status=filter_status)
 
-@app.route('/admin/application/view/<int:app_id>')
+@app.route('/admin/application/view/<app_id>')
 @login_required
 def view_application_details(app_id):
     if not current_user.is_admin:
         return redirect(url_for('student_dashboard'))
-    application = Application.query.get_or_404(app_id)
+    application = get_object_or_404(Application, app_id)
     return render_template('admin_application_view.html', application=application)
 
-@app.route('/admin/application/<int:app_id>/<action>')
+@app.route('/admin/application/<app_id>/<action>')
 @login_required
 def update_application_status(app_id, action):
     if not current_user.is_admin:
         return redirect(url_for('student_dashboard'))
-    application = Application.query.get_or_404(app_id)
+    application = get_object_or_404(Application, app_id)
     if action == 'approve':
         application.status = 'Approved'
     elif action == 'reject':
         application.status = 'Rejected'
-    db.session.commit()
+    application.save()
     flash(f'Application for {application.full_name} has been {application.status}.', 'success')
     return redirect(url_for('admin_dashboard'))
 
@@ -505,7 +517,7 @@ def update_application_status(app_id, action):
 def manage_courses():
     if not current_user.is_admin:
         return redirect(url_for('student_dashboard'))
-    courses = Course.query.all()
+    courses = Course.objects()
     return render_template('manage_courses.html', courses=courses)
 
 @app.route('/admin/course/add', methods=['GET', 'POST'])
@@ -515,37 +527,35 @@ def add_course():
         return redirect(url_for('student_dashboard'))
     if request.method == 'POST':
         new_course = Course(name=request.form.get('name'), description=request.form.get('description'))
-        db.session.add(new_course)
-        db.session.commit()
+        new_course.save()
         flash('Course has been added successfully!', 'success')
         return redirect(url_for('manage_courses'))
     return render_template('course_form.html', title='Add New Course')
 
-@app.route('/admin/course/edit/<int:id>', methods=['GET', 'POST'])
+@app.route('/admin/course/edit/<id>', methods=['GET', 'POST'])
 @login_required
 def edit_course(id):
     if not current_user.is_admin:
         return redirect(url_for('student_dashboard'))
-    course = Course.query.get_or_404(id)
+    course = get_object_or_404(Course, id)
     if request.method == 'POST':
         course.name = request.form.get('name')
         course.description = request.form.get('description')
-        db.session.commit()
+        course.save()
         flash('Course has been updated successfully!', 'success')
         return redirect(url_for('manage_courses'))
     return render_template('course_form.html', title='Edit Course', course=course)
 
-@app.route('/admin/course/delete/<int:id>', methods=['POST'])
+@app.route('/admin/course/delete/<id>', methods=['POST'])
 @login_required
 def delete_course(id):
     if not current_user.is_admin:
         return redirect(url_for('student_dashboard'))
-    course = Course.query.get_or_404(id)
-    if Application.query.filter_by(course_id=id).first():
+    course = get_object_or_404(Course, id)
+    if Application.objects(course=course).first():
         flash('Cannot delete this course as students have applied for it.', 'danger')
         return redirect(url_for('manage_courses'))
-    db.session.delete(course)
-    db.session.commit()
+    course.delete()
     flash('Course has been deleted successfully.', 'success')
     return redirect(url_for('manage_courses'))
 
@@ -554,7 +564,7 @@ def delete_course(id):
 def admin_messages():
     if not current_user.is_admin:
         return redirect(url_for('student_dashboard'))
-    messages = ContactMessage.query.order_by(desc(ContactMessage.timestamp)).all()
+    messages = ContactMessage.objects().order_by('-timestamp')
     return render_template('admin_messages.html', messages=messages)
 
 @app.route('/admin/reporting')
@@ -563,14 +573,19 @@ def admin_reporting():
     if not current_user.is_admin:
         return redirect(url_for('student_dashboard'))
     
-    base_query = Application.query.filter_by(is_draft=False, payment_status='Paid')
+    base_query = Application.objects(is_draft=False, payment_status='Paid')
     
+    by_course = []
+    for course in Course.objects():
+        count = Application.objects(course=course, is_draft=False, payment_status='Paid').count()
+        by_course.append((course.name, count))
+
     stats = {
         'total': base_query.count(),
-        'pending': base_query.filter_by(status='Pending').count(),
-        'approved': base_query.filter_by(status='Approved').count(),
-        'rejected': base_query.filter_by(status='Rejected').count(),
-        'by_course': db.session.query(Course.name, db.func.count(Application.id)).join(Application).filter(Application.is_draft==False, Application.payment_status=='Paid').group_by(Course.name).all()
+        'pending': base_query.filter(status='Pending').count(),
+        'approved': base_query.filter(status='Approved').count(),
+        'rejected': base_query.filter(status='Rejected').count(),
+        'by_course': by_course
     }
     return render_template('admin_reporting.html', stats=stats)
 
@@ -584,11 +599,11 @@ def export_csv():
     header = ['ID', 'Full Name', 'Email', 'DOB', 'Course', 'Status', 'Payment']
     writer.writerow(header)
     # Export only paid, non-draft applications
-    for app in Application.query.filter_by(is_draft=False, payment_status='Paid').all():
+    for app in Application.objects(is_draft=False, payment_status='Paid'):
         row = [
-            app.id, app.full_name, app.applicant.email,
+            str(app.id), app.full_name, app.applicant.email,
             app.date_of_birth.strftime('%Y-%m-%d'),
-            app.course.name, app.status, app.payment_status
+            app.course.name if app.course else 'N/A', app.status, app.payment_status
         ]
         writer.writerow(row)
     output.seek(0)

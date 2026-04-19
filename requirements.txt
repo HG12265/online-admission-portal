@@ -1,10 +1,12 @@
 Flask==3.0.3
 Flask-Login==0.6.3
-Flask-SQLAlchemy==3.1.1
+mongoengine==0.28.2
+pymongo==3.12.3
 Flask-Bcrypt==1.0.1
-SQLAlchemy==2.0.31
 fpdf==1.7.2
 Werkzeug==3.0.3
 itsdangerous==2.2.0
 click==8.1.7
 Jinja2==3.1.4
+gunicorn==21.2.0
+python-dotenv==1.0.1
