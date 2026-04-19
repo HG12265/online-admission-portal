@@ -10,3 +10,4 @@ click==8.1.7
 Jinja2==3.1.4
 gunicorn==21.2.0
 python-dotenv==1.0.1
+dnspython==2.4.2
